@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PLA/PAL Logic Minimization Assistant</title>
+
+<style>
+:root{
+  --bg:#f2f4f6;
+  --card:#ffffff;
+  --alt:#e8ecef;
+  --border:#cbd4db;
+  --text:#182028;
+  --muted:#5b6b78;
+  --accent:#0e7a72;
+  --accent2:#b5651d;
+  --danger:#a6291f;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial, sans-serif;
+}
+
+.container{
+  max-width:850px;
+  margin:auto;
+  padding:25px 18px 50px;
+}
+
+h1{
+  font-size:24px;
+  margin-bottom:8px;
+}
+
+.subtitle{
+  color:var(--muted);
+  line-height:1.5;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:18px;
+  margin-top:20px;
+}
+
+.config{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+
+label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:5px;
+}
+
+.stepper{
+  display:flex;
+  height:40px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  overflow:hidden;
+}
+
+.stepper button{
+  width:40px;
+  border:0;
+  background:var(--alt);
+  font-size:20px;
+  cursor:pointer;
+}
+
+.stepper span{
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:monospace;
+}
+
+.buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:15px;
+}
+
+button.action{
+  border:1px solid var(--border);
+  background:var(--alt);
+  padding:9px 14px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+button.primary{
+  background:var(--accent);
+  color:white;
+  border-color:var(--accent);
+  font-weight:bold;
+}
+
+h2{
+  font-size:17px;
+  margin-top:30px;
+  border-bottom:1px solid var(--border);
+  padding-bottom:8px;
+}
+
+.table-wrap{
+  overflow:auto;
+  border:1px solid var(--border);
+  border-radius:6px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-family:monospace;
+}
+
+th,td{
+  padding:9px 12px;
+  text-align:center;
+  border-bottom:1px solid var(--border);
+}
+
+th{
+  background:var(--alt);
+}
+
+.input{
+  color:var(--muted);
+}
+
+.output{
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.val-1{
+  background:#d9f1ed;
+  color:#06423e;
+}
+
+.val-X{
+  background:#f7e5d2;
+  color:#6b3b10;
+}
+
+.legend{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:8px;
+}
+
+.result{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:12px;
+  margin:8px 0;
+  font-family:monospace;
+}
+
+.result strong{
+  color:var(--accent);
+}
+
+.banner{
+  padding:12px;
+  margin-top:12px;
+  border-radius:6px;
+}
+
+.success{
+  background:#e4f2ee;
+  border:1px solid var(--accent);
+  color:#06423e;
+}
+
+.warning{
+  background:#fbe7e5;
+  border:1px solid var(--danger);
+  color:var(--danger);
+}
+
+.resources{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+
+.resource{
+  background:var(--alt);
+  padding:12px;
+  border-radius:6px;
+}
+
+.resource small{
+  display:block;
+  color:var(--muted);
+}
+
+.resource b{
+  font-size:20px;
+  font-family:monospace;
+}
+
+.term{
+  margin:7px 0;
+  padding:9px;
+  background:#e8ecef;
+  border-radius:5px;
+  font-family:monospace;
+}
+
+footer{
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  margin-top:35px;
+}
+
+@media(max-width:550px){
+  .config{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .resources{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>PLA/PAL Logic Minimization Assistant</h1>
+
+<p class="subtitle">
+Enter a truth table, minimize Boolean functions using the
+Quine–McCluskey method, and view PLA/PAL resource mapping.
+</p>
+
+<div class="card">
+
+<h3>Configuration</h3>
+
+<div class="config">
+
+<div>
+<label>Inputs</label>
+<div class="stepper">
+<button id="inputMinus">−</button>
+<span id="inputCount">3</span>
+<button id="inputPlus">+</button>
+</div>
+</div>
+
+<div>
+<label>Outputs</label>
+<div class="stepper">
+<button id="outputMinus">−</button>
+<span id="outputCount">2</span>
+<button id="outputPlus">+</button>
+</div>
+</div>
+
+<div>
+<label>PAL limit / output</label>
+<div class="stepper">
+<button id="limitMinus">−</button>
+<span id="palLimit">8</span>
+<button id="limitPlus">+</button>
+</div>
+</div>
+
+</div>
+
+<div class="buttons">
+
+<button class="action" id="sampleBtn">
+Load sample
+</button>
+
+<button class="action" id="randomBtn">
+Randomize
+</button>
+
+<button class="action" id="clearBtn">
+Clear outputs
+</button>
+
+</div>
+
+</div>
+
+<h2>Truth Table</h2>
+
+<div class="table-wrap">
+<table id="truthTable"></table>
+</div>
+
+<div class="legend">
+Tap output cells to cycle:
+0 → 1 → X → 0
+</div>
+
+<div class="buttons">
+<button class="action primary" id="runBtn">
+Run Minimization
+</button>
+</div>
+
+<div id="results" style="display:none">
+
+<h2>Minimized Functions</h2>
+
+<div id="functions"></div>
+
+<h2>PLA Mapping</h2>
+
+<div class="table-wrap">
+<table id="mapping"></table>
+</div>
+
+<div id="feasibility"></div>
+
+<h2>Resource Estimate</h2>
+
+<div class="resources" id="resources"></div>
+
+<h2>AND / OR Plane Diagram</h2>
+
+<div class="card" id="diagram"></div>
+
+</div>
+
+<footer>
+Runs entirely in your browser — no data leaves this page.
+</footer>
+
+</div>
+
+<script>
+
+"use strict";
+
+/* =========================
+   APPLICATION STATE
+========================= */
+
+let state = {
+  inputs:3,
+  outputs:2,
+  palLimit:8,
+  table:[]
+};
+
+
+/* =========================
+   BASIC FUNCTIONS
+========================= */
+
+function binary(number,bits){
+
+  return number
+    .toString(2)
+    .padStart(bits,"0");
+
+}
+
+
+function countOnes(str){
+
+  let count=0;
+
+  for(let c of str){
+
+    if(c==="1"){
+      count++;
+    }
+
+  }
+
+  return count;
+}
+
+
+function inputNames(){
+
+  let names=[];
+
+  for(let i=0;i<state.inputs;i++){
+
+    names.push(
+      String.fromCharCode(65+i)
+    );
+
+  }
+
+  return names;
+}
+
+
+function outputNames(){
+
+  let names=[];
+
+  for(let i=0;i<state.outputs;i++){
+
+    names.push("F"+(i+1));
+
+  }
+
+  return names;
+}
+
+
+/* =========================
+   CREATE TRUTH TABLE
+========================= */
+
+function createTable(){
+
+  let rows=2**state.inputs;
+
+  state.table=[];
+
+  for(let r=0;r<rows;r++){
+
+    let row=[];
+
+    for(let c=0;c<state.outputs;c++){
+
+      row.push("0");
+
+    }
+
+    state.table.push(row);
+
+  }
+
+}
+
+
+/* =========================
+   RENDER TABLE
+========================= */
+
+function renderTable(){
+
+  let names=inputNames();
+  let outputs=outputNames();
+
+  let html="<thead><tr>";
+
+  names.forEach(name=>{
+    html+=`<th>${name}</th>`;
+  });
+
+  outputs.forEach(name=>{
+    html+=`<th>${name}</th>`;
+  });
+
+  html+="</tr></thead><tbody>";
+
+  for(let r=0;r<state.table.length;r++){
+
+    html+="<tr>";
+
+    let bits=binary(r,state.inputs);
+
+    for(let bit of bits){
+
+      html+=`<td class="input">${bit}</td>`;
+
+    }
+
+    for(let c=0;c<state.outputs;c++){
+
+      let value=state.table[r][c];
+
+      html+=`
+      <td
+        class="output val-${value}"
+        data-row="${r}"
+        data-col="${c}">
+        ${value}
+      </td>
+      `;
+
+    }
+
+    html+="</tr>";
+
+  }
+
+  html+="</tbody>";
+
+  document.getElementById("truthTable").innerHTML=html;
+
+
+  document.querySelectorAll(".output").forEach(cell=>{
+
+    cell.addEventListener("click",function(){
+
+      let row=parseInt(this.dataset.row);
+      let col=parseInt(this.dataset.col);
+
+      let current=state.table[row][col];
+
+      let next;
+
+      if(current==="0"){
+        next="1";
+      }
+      else if(current==="1"){
+        next="X";
+      }
+      else{
+        next="0";
+      }
+
+      state.table[row][col]=next;
+
+      this.textContent=next;
+
+      this.className="output val-"+next;
+
+      document.getElementById("results").style.display="none";
+
+    });
+
+  });
+
+}
+
+
+/* =========================
+   COMBINE TERMS
+========================= */
+
+function combine(a,b){
+
+  let difference=0;
+  let result="";
+
+  for(let i=0;i<a.length;i++){
+
+    if(a[i]===b[i]){
+
+      result+=a[i];
+
+    }
+    else{
+
+      if(a[i]==="-" || b[i]==="-"){
+        return null;
+      }
+
+      difference++;
+
+      result+="-";
+
+    }
+
+  }
+
+  if(difference===1){
+    return result;
+  }
+
+  return null;
+
+}
+
+
+/* =========================
+   TERM COVERAGE
+========================= */
+
+function covers(term,bits){
+
+  for(let i=0;i<term.length;i++){
+
+    if(
+      term[i]!=="-" &&
+      term[i]!==bits[i]
+    ){
+
+      return false;
+
+    }
+
+  }
+
+  return true;
+
+}
+
+
+/* =========================
+   QUINE McCLUSKEY
+========================= */
+
+function findPrimeImplicants(minterms,dontCares){
+
+  let all=[
+    ...new Set([
+      ...minterms,
+      ...dontCares
+    ])
+  ];
+
+  if(all.length===0){
+
+    return [];
+
+  }
+
+  let groups={};
+
+  all.forEach(number=>{
+
+    let bits=binary(
+      number,
+      state.inputs
+    );
+
+    let count=countOnes(bits);
+
+    if(!groups[count]){
+      groups[count]=[];
+    }
+
+    if(!groups[count].includes(bits)){
+      groups[count].push(bits);
+    }
+
+  });
+
+
+  let primes=new Set();
+
+
+  while(true){
+
+    let next={};
+    let used=new Set();
+    let combined=false;
+
+    let keys=Object.keys(groups)
+      .map(Number)
+      .sort((a,b)=>a-b);
+
+
+    for(let k of keys){
+
+      if(!groups[k+1]){
+        continue;
+      }
+
+
+      for(let a of groups[k]){
+
+        for(let b of groups[k+1]){
+
+          let result=combine(a,b);
+
+          if(result){
+
+            combined=true;
+
+            used.add(a);
+            used.add(b);
+
+            let count=countOnes(
+              result
+                .replace(/-/g,"")
+            );
+
+            if(!next[count]){
+              next[count]=[];
+            }
+
+            if(!next[count].includes(result)){
+
+              next[count].push(result);
+
+            }
+
+          }
+
+        }
+
+      }
+
+    }
+
+
+    for(let k of keys){
+
+      for(let term of groups[k]){
+
+        if(!used.has(term)){
+
+          primes.add(term);
+
+        }
+
+      }
+
+    }
+
+
+    if(!combined){
+      break;
+    }
+
+    groups=next;
+
+  }
+
+
+  return [...primes];
+
+}
+
+
+/* =========================
+   PRIME IMPLICANT CHART
+========================= */
+
+function makeChart(primes,minterms){
+
+  let chart={};
+
+  primes.forEach(prime=>{
+
+    chart[prime]=[];
+
+    minterms.forEach(number=>{
+
+      let bits=binary(
+        number,
+        state.inputs
+      );
+
+      if(covers(prime,bits)){
+
+        chart[prime].push(number);
+
+      }
+
+    });
+
+  });
+
+  return chart;
+
+}
+
+
+/* =========================
+   SELECT TERMS
+========================= */
+
+function selectTerms(chart,minterms){
+
+  let selected=new Set();
+
+  let mintermMap={};
+
+  minterms.forEach(number=>{
+
+    mintermMap[number]=[];
+
+  });
+
+
+  Object.keys(chart).forEach(prime=>{
+
+    chart[prime].forEach(number=>{
+
+      mintermMap[number].push(prime);
+
+    });
+
+  });
+
+
+  /* Essential prime implicants */
+
+  Object.keys(mintermMap).forEach(number=>{
+
+    if(mintermMap[number].length===1){
+
+      selected.add(
+        mintermMap[number][0]
+      );
+
+    }
+
+  });
+
+
+  let covered=new Set();
+
+  selected.forEach(prime=>{
+
+    chart[prime].forEach(number=>{
+
+      covered.add(number);
+
+    });
+
+  });
+
+
+  let remaining=minterms.filter(
+    number=>!covered.has(number)
+  );
+
+
+  /* Greedy coverage for remaining minterms */
+
+  while(remaining.length>0){
+
+    let best=null;
+    let bestCoverage=[];
+
+
+    Object.keys(chart).forEach(prime=>{
+
+      if(selected.has(prime)){
+        return;
+      }
+
+      let coverage=
+        chart[prime].filter(
+          number=>remaining.includes(number)
+        );
+
+
+      if(
+        coverage.length >
+        bestCoverage.length
+      ){
+
+        best=prime;
+        bestCoverage=coverage;
+
+      }
+
+    });
+
+
+    if(!best){
+      break;
+    }
+
+
+    selected.add(best);
+
+    remaining=
+      remaining.filter(
+        number=>!bestCoverage.includes(number)
+      );
+
+  }
+
+
+  return [...selected];
+
+}
+
+
+/* =========================
+   BOOLEAN EXPRESSION
+========================= */
+
+function expression(term){
+
+  let names=inputNames();
+
+  let parts=[];
+
+  for(let i=0;i<term.length;i++){
+
+    if(term[i]==="1"){
+
+      parts.push(names[i]);
+
+    }
+
+    else if(term[i]==="0"){
+
+      parts.push(
+        names[i]+"'"
+      );
+
+    }
+
+  }
+
+
+  if(parts.length===0){
+
+    return "1";
+
+  }
+
+  return parts.join("·");
+
+}
+
+
+/* =========================
+   LITERAL COUNT
+========================= */
+
+function literalCount(term){
+
+  let count=0;
+
+  for(let c of term){
+
+    if(c!=="-"){
+      count++;
+    }
+
+  }
+
+  return count;
+
+}
+
+
+/* =========================
+   MINIMIZE ONE OUTPUT
+========================= */
+
+function minimizeOutput(column){
+
+  let minterms=[];
+  let dontCares=[];
+
+
+  for(let r=0;r<state.table.length;r++){
+
+    if(state.table[r][column]==="1"){
+
+      minterms.push(r);
+
+    }
+
+    else if(
+      state.table[r][column]==="X"
+    ){
+
+      dontCares.push(r);
+
+    }
+
+  }
+
+
+  if(minterms.length===0){
+
+    return {
+      primes:[],
+      selected:[]
+    };
+
+  }
+
+
+  let primes=
+    findPrimeImplicants(
+      minterms,
+      dontCares
+    );
+
+
+  let chart=
+    makeChart(
+      primes,
+      minterms
+    );
+
+
+  let selected=
+    selectTerms(
+      chart,
+      minterms
+    );
+
+
+  return {
+    primes,
+    selected
+  };
+
+}
+
+
+/* =========================
+   RUN MINIMIZATION
+========================= */
+
+function runMinimization(){
+
+  let outputs=outputNames();
+
+  let results={};
+
+
+  for(let c=0;c<state.outputs;c++){
+
+    results[outputs[c]]=
+      minimizeOutput(c);
+
+  }
+
+
+  displayResults(results);
+
+}
+
+
+/* =========================
+   DISPLAY RESULTS
+========================= */
+
+function displayResults(results){
+
+  let outputs=outputNames();
+
+  let functions=
+    document.getElementById("functions");
+
+  functions.innerHTML="";
+
+
+  outputs.forEach(name=>{
+
+    let selected=
+      results[name].selected;
+
+
+    let expressionText=
+      selected.length
+      ? selected
+          .map(expression)
+          .join(" + ")
+      : "0";
+
+
+    let div=
+      document.createElement("div");
+
+    div.className="result";
+
+    div.innerHTML=
+      `<strong>${name}</strong> = ${expressionText}`;
+
+    functions.appendChild(div);
+
+  });
+
+
+  /* =====================
+     PLA MAPPING
+  ===================== */
+
+  let uniqueTerms=[];
+  let seen=new Set();
+
+
+  outputs.forEach(name=>{
+
+    results[name].selected.forEach(term=>{
+
+      if(!seen.has(term)){
+
+        seen.add(term);
+        uniqueTerms.push(term);
+
+      }
+
+    });
+
+  });
+
+
+  let mapHTML="<thead><tr>";
+  mapHTML+="<th>Product Term</th>";
+
+  outputs.forEach(name=>{
+    mapHTML+=`<th>${name}</th>`;
+  });
+
+  mapHTML+="</tr></thead><tbody>";
+
+
+  uniqueTerms.forEach(term=>{
+
+    mapHTML+="<tr>";
+
+    mapHTML+=
+      `<td>${expression(term)}</td>`;
+
+
+    outputs.forEach(name=>{
+
+      let used=
+        results[name]
+          .selected
+          .includes(term);
+
+
+      mapHTML+=
+        `<td>${used?"✓":"—"}</td>`;
+
+    });
+
+
+    mapHTML+="</tr>";
+
+  });
+
+
+  mapHTML+="</tbody>";
+
+  document.getElementById(
+    "mapping"
+  ).innerHTML=mapHTML;
+
+
+  /* =====================
+     RESOURCE ESTIMATE
+  ===================== */
+
+  let plaTerms=
+    uniqueTerms.length;
+
+
+  let palTerms=0;
+
+  outputs.forEach(name=>{
+
+    palTerms+=
+      results[name]
+        .selected
+        .length;
+
+  });
+
+
+  let plaLiterals=0;
+  let palLiterals=0;
+
+
+  uniqueTerms.forEach(term=>{
+
+    plaLiterals+=
+      literalCount(term);
+
+  });
+
+
+  outputs.forEach(name=>{
+
+    results[name]
+      .selected
+      .forEach(term=>{
+
+        palLiterals+=
+          literalCount(term);
+
+      });
+
+  });
+
+
+  let resources=
+    document.getElementById(
+      "resources"
+    );
+
+
+  resources.innerHTML=`
+
+    <div class="resource">
+      <small>PLA unique product terms</small>
+      <b>${plaTerms}</b>
+    </div>
+
+    <div class="resource">
+      <small>PAL total product terms</small>
+      <b>${palTerms}</b>
+    </div>
+
+    <div class="resource">
+      <small>PLA AND-plane literals</small>
+      <b>${plaLiterals}</b>
+    </div>
+
+    <div class="resource">
+      <small>PAL AND-plane literals</small>
+      <b>${palLiterals}</b>
+    </div>
+
+    <div class="resource">
+      <small>Number of inputs</small>
+      <b>${state.inputs}</b>
+    </div>
+
+    <div class="resource">
+      <small>Number of outputs</small>
+      <b>${state.outputs}</b>
+    </div>
+
+  `;
+
+
+  /* =====================
+     PAL FEASIBILITY
+  ===================== */
+
+  let failed=[];
+
+
+  outputs.forEach(name=>{
+
+    let count=
+      results[name]
+        .selected
+        .length;
+
+
+    if(count>state.palLimit){
+
+      failed.push(name);
+
+    }
+
+  });
+
+
+  let feasibility=
+    document.getElementById(
+      "feasibility"
+    );
+
+
+  if(failed.length===0){
+
+    feasibility.className=
+      "banner success";
+
+    feasibility.textContent=
+      "PAL FIT: All outputs are within the configured product-term limit of "
+      +state.palLimit+".";
+
+  }
+
+  else{
+
+    feasibility.className=
+      "banner warning";
+
+    feasibility.textContent=
+      "PAL LIMIT EXCEEDED for: "
+      +failed.join(", ")
+      +" | Limit = "
+      +state.palLimit
+      +" product terms/output.";
+
+  }
+
+
+  /* =====================
+     AND / OR PLANE
+  ===================== */
+
+  let diagram=
+    document.getElementById(
+      "diagram"
+    );
+
+  diagram.innerHTML="";
+
+
+  if(uniqueTerms.length===0){
+
+    diagram.innerHTML=
+      "<p>All outputs are 0. No product terms are required.</p>";
+
+  }
+
+  else{
+
+    uniqueTerms.forEach(
+      (term,index)=>{
+
+        let users=
+          outputs.filter(name=>
+            results[name]
+              .selected
+              .includes(term)
+          );
+
+
+        let div=
+          document.createElement(
+            "div"
+          );
+
+        div.className="term";
+
+        div.innerHTML=
+          `<b>P${index+1}</b> :
+           ${expression(term)}
+           → ${users.join(", ")}`;
+
+        diagram.appendChild(div);
+
+      }
+    );
+
+  }
+
+
+  document.getElementById(
+    "results"
+  ).style.display="block";
+
+
+  document.getElementById(
+    "results"
+  ).scrollIntoView({
+    behavior:"smooth"
+  });
+
+}
+
+
+/* =========================
+   SAMPLE DATA
+========================= */
+
+function loadSample(){
+
+  state.inputs=3;
+  state.outputs=2;
+
+  state.table=[
+    ["0","0"],
+    ["1","0"],
+    ["1","0"],
+    ["0","1"],
+    ["1","1"],
+    ["1","1"],
+    ["0","1"],
+    ["0","0"]
+  ];
+
+
+  document.getElementById(
+    "inputCount"
+  ).textContent=3;
+
+
+  document.getElementById(
+    "outputCount"
+  ).textContent=2;
+
+
+  renderTable();
+
+}
+
+
+/* =========================
+   RANDOM DATA
+========================= */
+
+function randomize(){
+
+  for(
+    let r=0;
+    r<state.table.length;
+    r++
+  ){
+
+    for(
+      let c=0;
+      c<state.outputs;
+      c++
+    ){
+
+      let random=
+        Math.random();
+
+
+      if(random<0.15){
+
+        state.table[r][c]="X";
+
+      }
+
+      else if(random<0.57){
+
+        state.table[r][c]="1";
+
+      }
+
+      else{
+
+        state.table[r][c]="0";
+
+      }
+
+    }
+
+  }
+
+
+  renderTable();
+
+}
+
+
+/* =========================
+   CLEAR
+========================= */
+
+function clearOutputs(){
+
+  for(
+    let r=0;
+    r<state.table.length;
+    r++
+  ){
+
+    for(
+      let c=0;
+      c<state.outputs;
+      c++
+    ){
+
+      state.table[r][c]="0";
+
+    }
+
+  }
+
+
+  renderTable();
+
+}
+
+
+/* =========================
+   CHANGE INPUT COUNT
+========================= */
+
+function changeInputs(value){
+
+  if(value<2 || value>6){
+    return;
+  }
+
+
+  state.inputs=value;
+
+  createTable();
+
+  document.getElementById(
+    "inputCount"
+  ).textContent=value;
+
+  renderTable();
+
+}
+
+
+/* =========================
+   CHANGE OUTPUT COUNT
+========================= */
+
+function changeOutputs(value){
+
+  if(value<1 || value>4){
+    return;
+  }
+
+
+  state.outputs=value;
+
+  createTable();
+
+  document.getElementById(
+    "outputCount"
+  ).textContent=value;
+
+  renderTable();
+
+}
+
+
+/* =========================
+   BUTTON EVENTS
+========================= */
+
+document.getElementById(
+  "inputMinus"
+).onclick=()=>{
+
+  changeInputs(
+    state.inputs-1
+  );
+
+};
+
+
+document.getElementById(
+  "inputPlus"
+).onclick=()=>{
+
+  changeInputs(
+    state.inputs+1
+  );
+
+};
+
+
+document.getElementById(
+  "outputMinus"
+).onclick=()=>{
+
+  changeOutputs(
+    state.outputs-1
+  );
+
+};
+
+
+document.getElementById(
+  "outputPlus"
+).onclick=()=>{
+
+  changeOutputs(
+    state.outputs+1
+  );
+
+};
+
+
+document.getElementById(
+  "limitMinus"
+).onclick=()=>{
+
+  if(state.palLimit>1){
+
+    state.palLimit--;
+
+    document.getElementById(
+      "palLimit"
+    ).textContent=
+      state.palLimit;
+
+  }
+
+};
+
+
+document.getElementById(
+  "limitPlus"
+).onclick=()=>{
+
+  if(state.palLimit<32){
+
+    state.palLimit++;
+
+    document.getElementById(
+      "palLimit"
+    ).textContent=
+      state.palLimit;
+
+  }
+
+};
+
+
+document.getElementById(
+  "sampleBtn"
+).onclick=
+  loadSample;
+
+
+document.getElementById(
+  "randomBtn"
+).onclick=
+  randomize;
+
+
+document.getElementById(
+  "clearBtn"
+).onclick=
+  clearOutputs;
+
+
+document.getElementById(
+  "runBtn"
+).onclick=
+  runMinimization;
+
+
+/* =========================
+   START APPLICATION
+========================= */
+
+createTable();
+
+renderTable();
+
+</script>
+
+</body>
+</html>
